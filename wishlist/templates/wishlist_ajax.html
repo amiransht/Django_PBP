@@ -11,41 +11,59 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script type="text/javascript">
-        async function refresh() {
-            return $.ajax({ 
-                type: "GET",
-                url: "/json",
-                dataType: "json",
-                success: function (data) {
-                    wishlist_data = data
-                }
+
+        function getDataFromForm($form) {
+            var unindexed_items = $form.serializeArray();
+            var result = {};
+            $.map(unindexed_items, function (n, i) {
+                result[n['name']] = n['value'];
             });
-            return wishlist_data;
+            return result;
         }
 
-        async function refresh2(wishlist_data) {
-            var wishlist_data = refresh();
-            var itemHtml = "<table> <tr> <th>Nama Barang</th> </tr>";
-            for (var i = 0; i < wishlist_data.length; i++) {
-                var item = wishlist_data[i].fields;
-                itemHtml += '<tr> <th>' + item.nama_barang + '</tr> </th>'
-            }
-            console.log("test2");
-            console.log(wishlist_data);
-            itemHtml += "</table>"
-            document.getElementById('').innerHTML = itemHtml
-        }
-        
-        // $(document).ready(function(){
-        //     $.getJSON("../fixtures/initial_wishlist_data.json", function(data) {
-        //         var items = [];
-        //         $.each(data, function( key, val ) {
-        //             $("#display").append('<p>' + data + '</p>');
-        //         });
-        //     });
-        // });
-        
-        refresh2();
+        $(document).ready(function () {
+            $.getJSON("{% url 'wishlist:show_json' %}", function (json) {
+                var table = [];
+                $.each(json, function (index, data) {
+                    var row = [];
+                    var fields = data.fields
+                    row.push("<td>" + data.fields.nama_barang + "</td>");
+                    row.push("<td>" + data.fields.harga_barang + "</td>");
+                    row.push("<td>" + data.fields.deskripsi + "</td>");
+                    table.push("<tr>" + row.join("") + "</tr>");
+                });
+                document.getElementById("display").innerHTML = table.join("");
+            });
+
+            $("#tambah_barang_form").submit(function (e) {
+                e.preventDefault();
+                var $form = $(this);
+                var serializedData = getDataFromForm($form);
+                console.log(serializedData)
+                $.ajax({
+                    url: "{% url 'wishlist:add_barang_json' %}",
+                    type: "POST",
+                    data: serializedData,
+                    dataType: 'text',
+                    success: function (data) {
+                        $.getJSON(
+                            "{% url 'wishlist:show_json' %}",
+                            function (json) {
+                                var table = [];
+                                $.each(json, function (index, data) {
+                                    var row = [];
+                                    var fields = data.fields
+                                    row.push("<td>" + data.fields.nama_barang + "</td>");
+                                    row.push("<td>" + data.fields.harga_barang + "</td>");
+                                    row.push("<td>" + data.fields.deskripsi + "</td>");
+                                    table.push("<tr>" + row.join("") + "</tr>");
+                                });
+                                document.getElementById("display").innerHTML = table.join("");
+                            });
+                    }
+                });
+            });
+        });
 
     </script>
 </head>
@@ -69,24 +87,29 @@
     </nav>
     <!-- Navbar -->
 
-    <table class="table table-hover" style="font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif; color: #0D3B66; ">
+    <form class="container" method="POST" name="barang_form" id="tambah_barang_form">
+        {% csrf_token %}
+        <fieldset>
+            <legend>Tambah Barang Wishlist</legend>
+            <input class="form-control mb-3" type="text" placeholder="Nama barang" name="nama_barang">
+            <input class="form-control mb-3" type="number" min="1" step="any" placeholder="Harga barang"
+                name="harga_barang">
+            <textarea class="form-control mb-3" rows="3" placeholder="Deskripsi" name="deskripsi"></textarea>
+            <button type="submit" class="btn btn-primary btnClick">Submit</button>
+        </fieldset>
+    </form>
+
+    <table class="table table-hover" style="font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif; color: #0D3B66; margin: 15px; ">
         <thead class="thead-dark" style="background-color:#C9E1F8; font-size: 16px; color: black; ">
-        <tr>
-            <th style="text-align:center;">Nama Barang</th>
-            <th style="text-align:center;">Harga Barang</th>
-            <th style="text-align:center;">Deskripsi</th>
-        </tr>
-        </thead>
-        <!-- <tbody>
-        {% comment %} Tambahkan data di bawah baris ini {% endcomment %}
-        {% for barang in list_barang %}
             <tr>
-                <th>{{barang.nama_barang}}</th>
-                <th>{{barang.harga_barang}}</th>
-                <th>{{barang.deskripsi}}</th>
+                <th style="text-align:center;">Nama Barang</th>
+                <th style="text-align:center;">Harga Barang</th>
+                <th style="text-align:center;">Deskripsi</th>
             </tr>
-        {% endfor %}
-        </tbody> -->
+        </thead>
+        <tbody id="display">
+        
+        </tbody>
         
   
      
